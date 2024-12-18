@@ -1,0 +1,527 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define COURSE_COUNT 6
+#define MAX_NAME_LENGTH 50
+#define MAX_COURSE_NAME_LENGTH 50
+#define MAX_ID_LENGTH 20
+
+// 学生成绩结构体
+typedef struct Student {
+    char studentID[MAX_ID_LENGTH];  // 学号
+    char name[MAX_NAME_LENGTH];     // 姓名
+    float scores[COURSE_COUNT];     // 各门课程成绩
+    float gpas[COURSE_COUNT];       // 各门课程绩点
+    float totalScore;               // 总成绩
+    float totalGPA;                 // 总绩点
+    char scholarship[20];           // 奖学金类型
+    struct Student* next;           // 指向下一个学生的指针
+} Student;
+
+// 课程名称数组
+char courseNames[COURSE_COUNT][MAX_COURSE_NAME_LENGTH] = {
+    "数学", "英语", "程序设计", "数据结构", "物理", "化学"
+};
+
+// 函数声明
+// 创建学生记录并返回该学生节点
+Student* createStudent(const char* studentID, const char* name, float* scores);
+
+// 插入学生记录到链表中
+void insertStudent(Student** head, const char* studentID, const char* name, float* scores);
+
+// 删除指定学号的学生记录
+void deleteStudent(Student** head, const char* studentID);
+
+// 显示所有学生成绩
+void displayAllStudents(Student* head);
+
+// 查找指定学号的学生成绩
+void findStudentByID(Student* head, const char* studentID);
+
+// 更新指定学号的学生成绩
+void updateStudentScores(Student* head, const char* studentID, float* newScores);
+
+// 统计某门课程的成绩（平均分）
+void calculateCourseStats(Student* head, int courseIndex);
+
+// 排序学生成绩（按学号排序）
+void sortStudentsByID(Student** head);
+
+// 排序学生成绩（按课程成绩排序）
+void sortStudentsByCourseScore(Student* head, int courseIndex);
+
+// 为学生评定奖学金类型
+void assignScholarships(Student* head);
+
+// 释放所有学生记录
+void releaseAllStudents(Student* head);
+
+// 计算学生的总成绩
+void calculateTotalScore(Student* student);
+
+// 计算学生的总绩点
+void calculateGPA(Student* student);
+
+// 将成绩转换为绩点
+float scoreToGPA(float score);
+
+// 根据奖学金类型过滤并显示学生
+void filterStudentsByScholarship(Student* head, const char* scholarshipType);
+
+// 按总成绩对学生进行排序并展示排名
+void rankStudentsByTotalScore(Student* head);
+
+// 按总绩点对学生进行排序并展示排名
+void rankStudentsByGPA(Student* head);
+
+int main() {
+    Student* head = NULL; // 创建一个空链表头
+
+    int choice;
+    char studentID[MAX_ID_LENGTH], name[MAX_NAME_LENGTH];
+    float scores[COURSE_COUNT];
+    int courseIndex;
+
+    while (1) {
+        // 打印菜单
+        printf("\n==== 学生成绩管理系统 ====\n");
+        printf("1. 输入学生成绩\n");
+        printf("2. 删除学生成绩\n");
+        printf("3. 显示所有学生成绩\n");
+        printf("4. 查找学生成绩\n");
+        printf("5. 修改学生成绩\n");
+        printf("6. 统计某门课程成绩\n");
+        printf("7. 排序学生成绩（按学号）\n");
+        printf("8. 排序学生成绩（按课程成绩）\n");
+        printf("9. 奖学金评定\n");
+        printf("10. 按奖学金类型查询学生\n");
+        printf("11. 按总成绩查询并排名\n");
+        printf("12. 按总绩点查询并排名\n");
+        printf("13. 退出系统\n");
+        printf("请输入你的选择: ");
+        scanf("%d", &choice);
+        getchar();  // 清除缓冲区
+
+        switch (choice) {
+        case 1:  // 输入学生成绩
+            // 获取学号
+            printf("请输入学生学号: ");
+            fgets(studentID, sizeof(studentID), stdin);
+            studentID[strcspn(studentID, "\n")] = '\0';
+
+            // 获取学生姓名
+            printf("请输入学生姓名: ");
+            fgets(name, sizeof(name), stdin);
+            name[strcspn(name, "\n")] = '\0';
+
+            // 获取学生成绩
+            printf("请输入6门课程的成绩：\n");
+            for (int i = 0; i < COURSE_COUNT; i++) {
+                do {
+                    printf("请输入 %s 的成绩: ", courseNames[i]);
+                    scanf("%f", &scores[i]);
+                    // 验证成绩是否有效
+                    if (scores[i] < 0 || scores[i] > 100) {
+                        printf("成绩输入无效，请重新输入（0到100之间）！\n");
+                    }
+                } while (scores[i] < 0 || scores[i] > 100);
+            }
+            // 插入学生成绩
+            insertStudent(&head, studentID, name, scores);
+            printf("学生成绩录入成功！\n");
+            break;
+
+        case 2:  // 删除学生成绩
+            printf("请输入要删除的学生学号: ");
+            fgets(studentID, sizeof(studentID), stdin);
+            studentID[strcspn(studentID, "\n")] = '\0';
+            // 删除学生记录
+            deleteStudent(&head, studentID);
+            break;
+
+        case 3:  // 显示所有学生成绩
+            displayAllStudents(head);
+            break;
+
+        case 4:  // 查找学生成绩
+            printf("请输入要查找的学生学号: ");
+            fgets(studentID, sizeof(studentID), stdin);
+            studentID[strcspn(studentID, "\n")] = '\0';
+            findStudentByID(head, studentID);
+            break;
+
+        case 5:  // 修改学生成绩
+            printf("请输入要修改成绩的学生学号: ");
+            fgets(studentID, sizeof(studentID), stdin);
+            studentID[strcspn(studentID, "\n")] = '\0';
+
+            printf("请输入新的6门课程成绩：\n");
+            for (int i = 0; i < COURSE_COUNT; i++) {
+                do {
+                    printf("请输入 %s 的成绩: ", courseNames[i]);
+                    scanf("%f", &scores[i]);
+                    if (scores[i] < 0 || scores[i] > 100) {
+                        printf("成绩输入无效，请重新输入（0到100之间）！\n");
+                    }
+                } while (scores[i] < 0 || scores[i] > 100);
+            }
+            updateStudentScores(head, studentID, scores);
+            break;
+
+        case 6:  // 统计某门课程成绩
+            printf("请输入要统计的课程编号 (1-6): ");
+            scanf("%d", &courseIndex);
+            if (courseIndex >= 1 && courseIndex <= 6) {
+                calculateCourseStats(head, courseIndex - 1);
+            }
+            else {
+                printf("无效的课程编号！\n");
+            }
+            break;
+
+        case 7:  // 排序学生成绩（按学号）
+            sortStudentsByID(&head);
+            printf("学生成绩已按学号排序。\n");
+            break;
+
+        case 8:  // 排序学生成绩（按课程成绩）
+            printf("请输入要排序的课程编号 (1-6): ");
+            scanf("%d", &courseIndex);
+            if (courseIndex >= 1 && courseIndex <= 6) {
+                sortStudentsByCourseScore(head, courseIndex - 1);
+                printf("学生成绩已按课程成绩排序。\n");
+            }
+            else {
+                printf("无效的课程编号！\n");
+            }
+            break;
+
+        case 9:  // 奖学金评定
+            assignScholarships(head);
+            break;
+
+        case 10:  // 按奖学金类型查询学生
+        {
+            char scholarshipType[20];
+            printf("请输入要查询的奖学金类型（一等奖/二等奖/三等奖/无奖学金）：");
+            fgets(scholarshipType, sizeof(scholarshipType), stdin);
+            scholarshipType[strcspn(scholarshipType, "\n")] = '\0';
+
+            filterStudentsByScholarship(head, scholarshipType);
+            break;
+        }
+        case 11:
+            // 按总成绩进行排名
+            rankStudentsByTotalScore(head);  // 调用排名函数
+            break;
+        case 12:
+            // 按总绩点进行排名
+            rankStudentsByGPA(head);  // 调用排名函数
+            break;
+        case 13:  // 退出
+            releaseAllStudents(head);
+            printf("系统退出。\n");
+            return 0;
+
+        default:
+            printf("无效的选择，请重新输入。\n");
+        }
+    }
+
+    return 0;
+}
+
+// 创建学生记录并返回该学生节点
+Student* createStudent(const char* studentID, const char* name, float* scores) {
+    Student* newStudent = (Student*)malloc(sizeof(Student));
+    strcpy(newStudent->studentID, studentID);
+    strcpy(newStudent->name, name);
+    memcpy(newStudent->scores, scores, sizeof(float) * COURSE_COUNT);
+    newStudent->next = NULL;
+
+    calculateTotalScore(newStudent);
+    calculateGPA(newStudent);
+
+    return newStudent;
+}
+
+// 插入学生记录到链表中
+void insertStudent(Student** head, const char* studentID, const char* name, float* scores) {
+    Student* newStudent = createStudent(studentID, name, scores);
+
+    newStudent->next = *head;
+    *head = newStudent;
+}
+
+// 删除指定学号的学生记录
+void deleteStudent(Student** head, const char* studentID) {
+    Student* temp = *head;
+    Student* prev = NULL;
+
+    while (temp != NULL && strcmp(temp->studentID, studentID) != 0) {
+        prev = temp;
+        temp = temp->next;
+    }
+
+    if (temp != NULL) {
+        if (prev == NULL) {
+            *head = temp->next;
+        }
+        else {
+            prev->next = temp->next;
+        }
+        free(temp);
+        printf("学生 %s 已删除。\n", studentID);
+    }
+    else {
+        printf("未找到学号为 %s 的学生。\n", studentID);
+    }
+}
+
+// 显示所有学生成绩
+void displayAllStudents(Student* head) {
+    Student* temp = head;
+    if (temp == NULL) {
+        printf("没有学生记录。\n");
+        return;
+    }
+
+    printf("学号\t姓名\t总成绩\t总绩点\t奖学金\n");
+    while (temp != NULL) {
+        printf("%s\t%s\t%.2f\t%.2f\t%s\n", temp->studentID, temp->name,
+            temp->totalScore, temp->totalGPA, temp->scholarship);
+        temp = temp->next;
+    }
+}
+
+// 查找指定学号的学生成绩
+void findStudentByID(Student* head, const char* studentID) {
+    Student* temp = head;
+
+    while (temp != NULL) {
+        if (strcmp(temp->studentID, studentID) == 0) {
+            printf("学号: %s\n姓名: %s\n", temp->studentID, temp->name);
+            printf("课程成绩: ");
+            for (int i = 0; i < COURSE_COUNT; i++) {
+                printf("%s: %.2f ", courseNames[i], temp->scores[i]);
+            }
+            printf("\n总成绩: %.2f\n总绩点: %.2f\n奖学金: %s\n",
+                temp->totalScore, temp->totalGPA, temp->scholarship);
+            return;
+        }
+        temp = temp->next;
+    }
+    printf("未找到学号为 %s 的学生。\n", studentID);
+}
+
+// 更新指定学号的学生成绩
+void updateStudentScores(Student* head, const char* studentID, float* newScores) {
+    Student* temp = head;
+
+    while (temp != NULL) {
+        if (strcmp(temp->studentID, studentID) == 0) {
+            memcpy(temp->scores, newScores, sizeof(float) * COURSE_COUNT);
+            calculateTotalScore(temp);
+            calculateGPA(temp);
+            printf("学生 %s 的成绩已更新。\n", studentID);
+            return;
+        }
+        temp = temp->next;
+    }
+    printf("未找到学号为 %s 的学生。\n", studentID);
+}
+
+// 统计某门课程成绩（平均分）
+void calculateCourseStats(Student* head, int courseIndex) {
+    Student* temp = head;
+    int count = 0;
+    float totalScore = 0;
+
+    while (temp != NULL) {
+        totalScore += temp->scores[courseIndex];
+        count++;
+        temp = temp->next;
+    }
+
+    if (count == 0) {
+        printf("没有学生成绩记录。\n");
+    }
+    else {
+        printf("课程 %s 的平均成绩: %.2f\n", courseNames[courseIndex],
+            totalScore / count);
+    }
+}
+
+// 排序学生成绩（按学号排序）
+void sortStudentsByID(Student** head) {
+    if (*head == NULL || (*head)->next == NULL) return;
+
+    Student* i, * j;
+    for (i = *head; i != NULL; i = i->next) {
+        for (j = i->next; j != NULL; j = j->next) {
+            if (strcmp(i->studentID, j->studentID) > 0) {
+                // 交换节点数据
+                Student temp = *i;
+                *i = *j;
+                *j = temp;
+            }
+        }
+    }
+}
+
+// 排序学生成绩（按课程成绩排序）
+void sortStudentsByCourseScore(Student* head, int courseIndex) {
+    if (head == NULL || head->next == NULL) return;
+
+    Student* i, * j;
+    for (i = head; i != NULL; i = i->next) {
+        for (j = i->next; j != NULL; j = j->next) {
+            if (i->scores[courseIndex] < j->scores[courseIndex]) {
+                // 交换节点数据
+                Student temp = *i;
+                *i = *j;
+                *j = temp;
+            }
+        }
+    }
+}
+
+// 为学生评定奖学金类型
+void assignScholarships(Student* head) {
+    Student* temp = head;
+    while (temp != NULL) {
+        if (temp->totalGPA >= 3.5) {
+            strcpy(temp->scholarship, "一等奖");
+        }
+        else if (temp->totalGPA >= 3.0) {
+            strcpy(temp->scholarship, "二等奖");
+        }
+        else if (temp->totalGPA >= 2.5) {
+            strcpy(temp->scholarship, "三等奖");
+        }
+        else {
+            strcpy(temp->scholarship, "无奖学金");
+        }
+        temp = temp->next;
+    }
+}
+
+// 释放所有学生记录
+void releaseAllStudents(Student* head) {
+    Student* temp;
+    while (head != NULL) {
+        temp = head;
+        head = head->next;
+        free(temp);
+    }
+}
+
+// 计算学生的总成绩
+void calculateTotalScore(Student* student) {
+    float total = 0;
+    for (int i = 0; i < COURSE_COUNT; i++) {
+        total += student->scores[i];
+    }
+    student->totalScore = total / COURSE_COUNT;
+}
+
+// 计算学生的总绩点
+void calculateGPA(Student* student) {
+    float totalGPA = 0;
+    for (int i = 0; i < COURSE_COUNT; i++) {
+        student->gpas[i] = scoreToGPA(student->scores[i]);
+        totalGPA += student->gpas[i];
+    }
+    student->totalGPA = totalGPA / COURSE_COUNT;
+}
+
+// 将成绩转换为绩点
+float scoreToGPA(float score) {
+    if (score >= 90) return 4.0;
+    else if (score >= 80) return 3.5;
+    else if (score >= 70) return 3.0;
+    else if (score >= 60) return 2.5;
+    else return 1.0;
+}
+
+// 根据奖学金类型过滤并显示学生
+void filterStudentsByScholarship(Student* head, const char* scholarshipType) {
+    Student* temp = head;
+    int found = 0;
+
+    printf("奖学金类型：%s 的学生如下:\n", scholarshipType);
+    printf("学号\t姓名\t总成绩\t总绩点\t奖学金\n");
+
+    while (temp != NULL) {
+        if (strcmp(temp->scholarship, scholarshipType) == 0) {
+            printf("%s\t%s\t%.2f\t%.2f\t%s\n", temp->studentID, temp->name,
+                temp->totalScore, temp->totalGPA, temp->scholarship);
+            found = 1;
+        }
+        temp = temp->next;
+    }
+
+    if (!found) {
+        printf("没有找到符合条件的学生。\n");
+    }
+}
+// 按总成绩对学生进行排序并展示排名
+void rankStudentsByTotalScore(Student* head) {
+    if (head == NULL || head->next == NULL) return;
+
+    // 使用冒泡排序对链表按总成绩排序
+    Student* i, * j;
+    for (i = head; i != NULL; i = i->next) {
+        for (j = i->next; j != NULL; j = j->next) {
+            if (i->totalScore < j->totalScore) {
+                // 交换数据
+                Student temp = *i;
+                *i = *j;
+                *j = temp;
+            }
+        }
+    }
+
+    // 输出排序后的学生信息
+    printf("按总成绩排名：\n");
+    printf("排名\t学号\t姓名\t总成绩\t总绩点\t奖学金\n");
+    int rank = 1;
+    Student* temp = head;
+    while (temp != NULL) {
+        printf("%d\t%s\t%s\t%.2f\t%.2f\t%s\n", rank++, temp->studentID,
+            temp->name, temp->totalScore, temp->totalGPA, temp->scholarship);
+        temp = temp->next;
+    }
+}
+
+// 按总绩点对学生进行排序并展示排名
+void rankStudentsByGPA(Student* head) {
+    if (head == NULL || head->next == NULL) return;
+
+    // 使用冒泡排序对链表按总绩点排序
+    Student* i, * j;
+    for (i = head; i != NULL; i = i->next) {
+        for (j = i->next; j != NULL; j = j->next) {
+            if (i->totalGPA < j->totalGPA) {
+                // 交换数据
+                Student temp = *i;
+                *i = *j;
+                *j = temp;
+            }
+        }
+    }
+
+    // 输出排序后的学生信息
+    printf("按总绩点排名：\n");
+    printf("排名\t学号\t姓名\t总成绩\t总绩点\t奖学金\n");
+    int rank = 1;
+    Student* temp = head;
+    while (temp != NULL) {
+        printf("%d\t%s\t%s\t%.2f\t%.2f\t%s\n", rank++, temp->studentID,
+            temp->name, temp->totalScore, temp->totalGPA, temp->scholarship);
+        temp = temp->next;
+    }
+}
